@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: adipo-academy-web
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    startCommand: "node src/server.js"
+databases:
+  - name: adipo-academy-db
+    engine: postgres
+    plan: starter

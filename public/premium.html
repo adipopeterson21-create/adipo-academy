@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Upgrade — Adipo Academy</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    body{background:#071026;color:#e6eef6;font-family:Inter,system-ui;padding:40px}
+    .card{background:#0b1220;padding:20px;border-radius:12px;max-width:560px;margin:20px auto}
+    button{padding:10px 14px;border-radius:8px;border:0;background:linear-gradient(90deg,#7c3aed,#60a5fa);color:#021;font-weight:700;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Upgrade to Premium</h2>
+    <p class="muted">Test mode Stripe placeholder — $5.00</p>
+    <div id="card-element"></div><br/>
+    <button id="pay">Pay $5</button>
+    <div id="msg" style="margin-top:12px;color:#9aa"></div>
+  </div>
+
+<script>
+const stripe = Stripe('pk_test_REPLACE_ME'); // replace with your publishable key
+const elements = stripe.elements();
+const card = elements.create('card');
+card.mount('#card-element');
+
+document.getElementById('pay').addEventListener('click', async ()=>{
+  const token = localStorage.getItem('token');
+  if(!token) return alert('Please login first');
+  const res = await fetch('/api/content/create-payment-intent', { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+token }, body: JSON.stringify({ amount: 500 })});
+  const data = await res.json();
+  if(!res.ok) return alert(data.error || 'Payment failed');
+  const clientSecret = data.clientSecret;
+  const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, { payment_method: { card }});
+  if(error){ document.getElementById('msg').innerText = error.message; }
+  else if(paymentIntent && paymentIntent.status==='succeeded'){ document.getElementById('msg').innerText = 'Payment succeeded — premium will be activated shortly.'; }
+});
+</script>
+</body>
+</html>

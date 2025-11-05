@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Adipo Academy — Learning & Entertainment</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg:#0b1020; --card:#0f1724; --muted:#94a3b8; --accent:#7c3aed; --glass: rgba(255,255,255,0.03);}
+    *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#e6eef6}
+    body{margin:0;background:linear-gradient(180deg,#05060a 0%, #081026 100%);min-height:100vh}
+    header{display:flex;justify-content:space-between;align-items:center;padding:20px 40px}
+    .brand{font-weight:800;color:var(--accent);letter-spacing:0.6px}
+    .container{max-width:1100px;margin:24px auto;padding:20px}
+    .card{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+    .grid{display:grid;grid-template-columns:1fr 320px;gap:18px}
+    .media-item{display:flex;gap:12px;align-items:center;padding:12px;border-radius:10px;background:var(--glass)}
+    img.thumb{width:120px;height:72px;object-fit:cover;border-radius:8px}
+    button.primary{background:linear-gradient(90deg,var(--accent),#60a5fa);border:0;padding:8px 12px;border-radius:8px;color:#021;font-weight:700;cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+    footer{text-align:center;padding:28px;color:var(--muted)}
+    input,textarea{padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.02);color:inherit;width:100%}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Adipo Academy</div>
+    <nav><a href="/admin" style="color:#94a3b8;text-decoration:none">Admin</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="card grid">
+      <section>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>Explore</h2>
+          <div id="userArea"></div>
+        </div>
+        <div id="contents" style="margin-top:12px"></div>
+      </section>
+      <aside>
+        <div class="card">
+          <h3>Account</h3>
+          <div id="authForms">
+            <div id="loggedOut">
+              <input id="name" placeholder="Name"/><br/><br/>
+              <input id="email" placeholder="Email"/><br/><br/>
+              <input id="password" type="password" placeholder="Password"/><br/><br/>
+              <div style="display:flex;gap:8px">
+                <button class="primary" onclick="register()">Register</button>
+                <button class="primary" onclick="login()">Login</button>
+              </div>
+            </div>
+            <div id="loggedIn" style="display:none">
+              <div id="profile"></div>
+              <button class="primary" onclick="logout()">Logout</button>
+              <button style="margin-top:10px" onclick="openPremium()">Upgrade</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <h3>Contact</h3>
+          <p class="muted">Email: <a href="mailto:hello@adipo.academy" style="color:#9ad">hello@adipo.academy</a></p>
+          <p class="muted">WhatsApp: <a id="wa" href="#" style="color:#9ad">Open chat</a></p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer>© Adipo Academy 2025 — Dark premium theme</footer>
+
+<script>
+const API='/api';
+function renderContents(items){
+  const el=document.getElementById('contents'); el.innerHTML='';
+  items.forEach(it=>{
+    const div=document.createElement('div'); div.className='media-item';
+    const img=document.createElement('img'); img.className='thumb'; img.src=it.cloudinaryUrl||'https://via.placeholder.com/160x90';
+    const meta=document.createElement('div'); meta.innerHTML='<strong>'+it.title+'</strong><div class="muted">'+(it.description||'')+'</div>';
+    const btn=document.createElement('button'); btn.className='primary'; btn.textContent=it.mediaType==='VIDEO'?'Watch':it.mediaType==='AUDIO'?'Play':it.mediaType==='PDF'?'Read':'Open';
+    btn.onclick=()=>openMedia(it);
+    div.appendChild(img); div.appendChild(meta); div.appendChild(btn); el.appendChild(div);
+  });
+}
+
+async function fetchContents(){
+  const token=localStorage.getItem('token');
+  const headers= token? {'Authorization':'Bearer '+token} : {};
+  try{
+    const res=await fetch(API+'/content',{ headers });
+    if(!res.ok) throw await res.json();
+    const data=await res.json();
+    renderContents(data);
+  }catch(e){
+    document.getElementById('contents').innerHTML='<div class="muted">Please login to view content.</div>';
+  }
+}
+
+function openMedia(it){
+  const w=window.open('','_blank','noopener');
+  if(it.mediaType==='VIDEO') w.document.write('<video controls src="'+it.cloudinaryUrl+'" style="width:100%"></video>');
+  else if(it.mediaType==='AUDIO') w.document.write('<audio controls src="'+it.cloudinaryUrl+'"></audio>');
+  else if(it.mediaType==='PDF') w.document.write('<iframe src="'+it.cloudinaryUrl+'" style="width:100%;height:100vh"></iframe>');
+  else w.document.write('<a href="'+it.cloudinaryUrl+'" target="_blank">Open</a>');
+}
+
+async function register(){
+  const name=document.getElementById('name').value; const email=document.getElementById('email').value; const password=document.getElementById('password').value;
+  const res=await fetch(API+'/auth/register',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name,email,password})});
+  const data=await res.json();
+  if(res.ok){ localStorage.setItem('token',data.token); localStorage.setItem('user',JSON.stringify(data.user)); showProfile(); fetchContents(); } else alert(data.error||'Register failed');
+}
+async function login(){
+  const email=document.getElementById('email').value; const password=document.getElementById('password').value;
+  const res=await fetch(API+'/auth/login',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email,password})});
+  const data=await res.json();
+  if(res.ok){ localStorage.setItem('token',data.token); localStorage.setItem('user',JSON.stringify(data.user)); showProfile(); fetchContents(); } else alert(data.error||'Login failed');
+}
+function logout(){ localStorage.removeItem('token'); localStorage.removeItem('user'); showProfile(); fetchContents(); }
+function showProfile(){ const u=JSON.parse(localStorage.getItem('user')||'null'); if(u){ document.getElementById('loggedOut').style.display='none'; document.getElementById('loggedIn').style.display='block'; document.getElementById('profile').innerHTML='<strong>'+u.name+'</strong><div class="muted">'+u.email+'</div>'; } else { document.getElementById('loggedOut').style.display='block'; document.getElementById('loggedIn').style.display='none'; } }
+function openPremium(){ window.location.href='/public/premium.html'; }
+document.getElementById('wa').href='https://wa.me/254700000000?text=Hello%20Adipo%20Academy';
+showProfile(); fetchContents();
+</script>
+</body>
+</html>
