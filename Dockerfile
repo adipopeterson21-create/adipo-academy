@@ -11,7 +11,7 @@ RUN cd admin-app && npm install
 COPY admin-app ./admin-app
 
 # Run Vite build
-RUN cd admin-app && npm run build
+RUN cd admin-app && npx vite build
 
 # -------- Stage 2: Build backend --------
 FROM node:18 AS backend
