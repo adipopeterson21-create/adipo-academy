@@ -1,23 +1,34 @@
-# Stage 1: build admin app
-FROM node:20-alpine AS admin-build
-WORKDIR /admin
-COPY admin-app/package.json admin-app/package-lock.json* ./admin-app/
+# -------- Stage 1: Build React frontend --------
+FROM node:18 AS frontend
+
+WORKDIR /app
+
+# Copy only admin-app first (improves caching)
+COPY admin-app/package*.json ./admin-app/
 RUN cd admin-app && npm install
-COPY admin-app/ admin-app/
+
+# Now copy the rest of the code
+COPY admin-app ./admin-app
 RUN cd admin-app && npm run build
 
-# Stage 2: build server
-FROM node:20-alpine
+# -------- Stage 2: Build backend --------
+FROM node:18 AS backend
+
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install --production
-# copy server code
-COPY src/ src/
-COPY prisma/ prisma/
-# copy built admin app into public/admin
-COPY --from=admin-build /admin/admin-app/dist ./public/admin
-# copy public
-COPY public/ public/
+
+# Copy backend files
+COPY package*.json ./
+RUN npm install
+
+# Copy built frontend into backend's public directory
+COPY --from=frontend /app/admin-app/build ./public/admin
+
+# Copy all backend source
+COPY . .
+
+# Generate Prisma client
 RUN npx prisma generate
-EXPOSE 4000
-CMD ["node", "src/server.js"]
+
+# Expose port and start
+EXPOSE 8080
+CMD ["npm", "start"]
